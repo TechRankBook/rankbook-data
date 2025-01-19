@@ -1,213 +1,140 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Import axios
-import TextField from '@mui/material/TextField';
-import MenuItem from '@mui/material/MenuItem';
+import React, { useState } from "react";
+import { useRegistrationStore } from "./useRegistrationStore";
 
 const RegistrationForm = () => {
-  const navigate = useNavigate();
+  const { register, isLoading, error, message } = useRegistrationStore();
   const [formData, setFormData] = useState({
-    Name: '',
-    College: '',
-    Degree: '',
-    Branch: '',
-    PhoneNumber: '',
-    Email: '',
-    Address: '',
-    Role: '',
-    DOB: '',
-    USN: '',
+    name: "",
+    college: "",
+    degree: "",
+    branch: "",
+    phoneNumber: "",
+    email: "",
+    address: "",
+    dob: "",
+    usn: "",
+    courseType: "UG", // Default course type
+    updates: false, // Whether the user wants updates
   });
 
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [showPopup, setShowPopup] = useState({ type: '', message: '' });
-
-  // Determine API URL based on the environment
-  const API_URL =
-    import.meta.env.MODE === 'development'
-      ? 'http://localhost:5000/api'
-      : 'https://rankbook-data.onrender.com/api'; // Replace with your backend's production URL
-
-  const registerUser = async (data) => {
-
-    
-    try {
-      const response = await axios.post(`${API_URL}/register`, data, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    const phoneRegex = /^[0-9]{10}$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const usnRegex = /^[A-Za-z0-9]+$/;
-
-    if (!formData.Name) newErrors.Name = 'Name is required';
-    if (!formData.College) newErrors.College = 'College is required';
-    if (!formData.Degree) newErrors.Degree = 'Degree is required';
-    if (!formData.Branch) newErrors.Branch = 'Branch is required';
-    if (!formData.Role) newErrors.Role = 'Role is required';
-    if (!formData.DOB) newErrors.DOB = 'Date of Birth is required';
-    if (!formData.USN || !usnRegex.test(formData.USN)) newErrors.USN = 'Invalid USN';
-    if (!phoneRegex.test(formData.PhoneNumber)) newErrors.PhoneNumber = 'Invalid phone number';
-    if (!emailRegex.test(formData.Email)) newErrors.Email = 'Invalid email address';
-    if (!formData.Address) newErrors.Address = 'Address is required';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (loading) {
-      showTemporaryPopup('notice', 'Form is getting submitted. Please wait!');
-      return;
+    try {
+      await register(formData, formData.courseType);
+      alert(message || "Registration Successful!");
+    } catch (err) {
+      alert(error || "An error occurred during registration.");
     }
-
-    if (validateForm()) {
-      setLoading(true);
-      try {
-        await registerUser(formData);
-        showTemporaryPopup('success', 'Registration Successful! All the very best for your test.');
-        setTimeout(() => navigate('/taketest'), 5000);
-      } catch (error) {
-        console.error('Error during registration:', error); // Debugging
-        const errorMessage = error.response?.data?.message || 'Failed to register';
-        showTemporaryPopup('error', errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  const showTemporaryPopup = (type, message) => {
-    setShowPopup({ type, message });
-    setTimeout(() => setShowPopup({ type: '', message: '' }), 5000);
-  };
-
-  const containerStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #f5f7fa, #c3cfe2)',
-  };
-
-  const formStyle = {
-    width: '100%',
-    maxWidth: '500px',
-    backgroundColor: '#fff',
-    padding: '30px',
-    borderRadius: '10px',
-    boxShadow: '0 8px 15px rgba(0, 0, 0, 0.1)',
-  };
-
-  const headerStyle = {
-    textAlign: 'center',
-    color: '#1976d2',
-    marginBottom: '20px',
-    fontSize: '1.8rem',
-    fontWeight: 'bold',
-  };
-
-  const submitButtonStyle = (loading) => ({
-    padding: '10px 20px',
-    backgroundColor: loading ? '#ccc' : '#1976d2',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '5px',
-    fontWeight: 'bold',
-    cursor: loading ? 'not-allowed' : 'pointer',
-  });
-
-  const popupStyle = {
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    backgroundColor: '#fff',
-    padding: '20px',
-    borderRadius: '10px',
-    boxShadow: '0 8px 15px rgba(0, 0, 0, 0.2)',
-    textAlign: 'center',
-    zIndex: 1000,
   };
 
   return (
-    <div style={containerStyle}>
-      <div style={formStyle}>
-        <h2 style={headerStyle}>Register for Test</h2>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {['Name', 'College', 'Degree', 'Branch', 'PhoneNumber', 'Email', 'Address', 'USN'].map((field) => (
-            <TextField
-              key={field}
-              label={field}
-              name={field}
-              value={formData[field]}
-              onChange={handleChange}
-              error={!!errors[field]}
-              helperText={errors[field]}
-              fullWidth
-            />
-          ))}
-
-          <TextField
-            label="Date of Birth"
-            type="date"
-            name="DOB"
-            value={formData.DOB}
-            onChange={handleChange}
-            error={!!errors.DOB}
-            helperText={errors.DOB}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-          />
-
-          <TextField
-            select
-            label="Role"
-            name="Role"
-            value={formData.Role}
-            onChange={handleChange}
-            error={!!errors.Role}
-            helperText={errors.Role}
-            fullWidth
-          >
-            {['Placement Officer', 'Faculty', 'HOD', 'Student'].map((role) => (
-              <MenuItem key={role} value={role}>
-                {role}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <button type="submit" style={submitButtonStyle(loading)}>
-            {loading ? 'Submitting...' : 'Submit'}
-          </button>
-        </form>
-      </div>
-
-      {showPopup.type && (
-        <div style={popupStyle}>
-          <h2 style={{ color: showPopup.type === 'success' ? '#1976d2' : '#d32f2f' }}>
-            {showPopup.type === 'success' ? 'Success' : 'Error'}
-          </h2>
-          <p>{showPopup.message}</p>
-        </div>
-      )}
-    </div>
+    <form onSubmit={handleSubmit} style={{ maxWidth: "500px", margin: "auto" }}>
+      <h2>Register for Test</h2>
+      <input
+        type="text"
+        name="name"
+        placeholder="Name"
+        value={formData.name}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="college"
+        placeholder="College"
+        value={formData.college}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="degree"
+        placeholder="Degree"
+        value={formData.degree}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="branch"
+        placeholder="Branch"
+        value={formData.branch}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="phoneNumber"
+        placeholder="Phone Number"
+        value={formData.phoneNumber}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="email"
+        name="email"
+        placeholder="Email"
+        value={formData.email}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="usn"
+        placeholder="USN"
+        value={formData.usn}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="address"
+        placeholder="Address"
+        value={formData.address}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="date"
+        name="dob"
+        value={formData.dob}
+        onChange={handleChange}
+        required
+      />
+      <select
+        name="courseType"
+        value={formData.courseType}
+        onChange={handleChange}
+        required
+      >
+        <option value="UG">UG</option>
+        <option value="PG">PG</option>
+        <option value="Engineering">Engineering</option>
+        <option value="Diploma">Diploma</option>
+      </select>
+      <label>
+        <input
+          type="checkbox"
+          name="updates"
+          checked={formData.updates}
+          onChange={handleChange}
+        />
+        Receive Updates
+      </label>
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? "Submitting..." : "Submit"}
+      </button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {message && <p style={{ color: "green" }}>{message}</p>}
+    </form>
   );
 };
 
