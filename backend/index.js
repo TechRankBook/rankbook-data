@@ -16,9 +16,10 @@ const PORT = process.env.PORT || 5000;
 const __dirname = path.resolve();
 
 app.use(cors({
-	origin: ["http://localhost:5173", "https://rankbook-data.onrender.com"], // Allow both development and production
+	origin: ["http://localhost:5173", "https://rankbook-data.onrender.com"],
 	credentials: true,
   }));
+  
   
 
 app.use(express.json()); // allows us to parse incoming requests:req.body
