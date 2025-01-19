@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../../../api/api';
+import axios from 'axios'; // Import axios
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 
@@ -22,6 +22,27 @@ const RegistrationForm = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState({ type: '', message: '' });
+
+  // Determine API URL based on the environment
+  const API_URL =
+    import.meta.env.MODE === 'development'
+      ? 'http://localhost:5000/api'
+      : 'https://rankbook-data.onrender.com/api'; // Replace with your backend's production URL
+
+  const registerUser = async (data) => {
+
+    
+    try {
+      const response = await axios.post(`${API_URL}/register`, data, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -63,7 +84,9 @@ const RegistrationForm = () => {
         showTemporaryPopup('success', 'Registration Successful! All the very best for your test.');
         setTimeout(() => navigate('/taketest'), 5000);
       } catch (error) {
-        showTemporaryPopup('error', error.response?.data?.message || 'Failed to register');
+        console.error('Error during registration:', error); // Debugging
+        const errorMessage = error.response?.data?.message || 'Failed to register';
+        showTemporaryPopup('error', errorMessage);
       } finally {
         setLoading(false);
       }
