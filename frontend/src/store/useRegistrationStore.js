@@ -7,6 +7,7 @@ const API_URL = import.meta.env.MODE === "development"
   : "https://rankbook-data.onrender.com/api/register";
 
 
+
 axios.defaults.withCredentials = true;
 
 export const useRegistrationStore = create((set) => ({
