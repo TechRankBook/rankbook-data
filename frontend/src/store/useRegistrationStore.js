@@ -4,7 +4,7 @@ import axios from "axios";
 // Define the API URL based on environment
 const API_URL = import.meta.env.MODE === "development"
   ? "http://localhost:5000/api/register"
-  : "/api/register";
+  : "https://rankbook-data.onrender.com/api/register";
 
 axios.defaults.withCredentials = true;
 
