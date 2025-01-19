@@ -15,17 +15,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const __dirname = path.resolve();
 
-const cors = require("cors");
+app.use(cors({
+  origin: ["http://localhost:5173", "https://rankbook-data.onrender.com"], // Allow both development and production
+  credentials: true,
+}));
 
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173", // Use CLIENT_URL from env
-    credentials: true, // Allow cookies
-  })
-);
-
-  
-  
 
 app.use(express.json()); // allows us to parse incoming requests:req.body
 app.use(cookieParser()); // allows us to parse incoming cookies
@@ -34,17 +28,12 @@ app.use("/api/auth", authRoutes);
 app.use("/api/register", registrationRoutes); // Fixed path for registration routes
 
 if (process.env.NODE_ENV === "production") {
-	// Serve static files from the frontend build directory
 	app.use(express.static(path.join(__dirname, "/frontend/dist")));
-  
-	// Serve frontend for non-API routes
+
 	app.get("*", (req, res) => {
-	  if (!req.path.startsWith("/api")) { // Exclude API routes
 		res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
-	  }
 	});
-  }
-  
+}
 
 app.listen(PORT, () => {
 	connectDB();
