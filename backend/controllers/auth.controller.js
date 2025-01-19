@@ -1,49 +1,43 @@
 import bcryptjs from "bcryptjs";
 import crypto from "crypto";
-
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
-import {
-	sendPasswordResetEmail,
-	sendResetSuccessEmail,
-	sendVerificationEmail,
-	sendWelcomeEmail,
-} from "../mailtrap/emails.js";
-import { User } from "../models/user.model.js";
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendResetSuccessEmail } from "../mailtrap/emails.js";
+
+import User from "../models/user.model.js";
 
 export const signup = async (req, res) => {
-	const { email, password, name } = req.body;
+    
+    const {email, password, name} = req.body;
 
-	try {
-		if (!email || !password || !name) {
-			throw new Error("All fields are required");
-		}
+    try {
+        if(!email || !password || !name) {
+            throw new Error("All fields are required");
+        }
+        
+        const userAlreadyExists = await User.findOne({email});
+        if(userAlreadyExists) {
+            return res.status(400).json({success: false, message: "User Already Exists"});
+        }
 
-		const userAlreadyExists = await User.findOne({ email });
-		console.log("userAlreadyExists", userAlreadyExists);
+        const hashedPassword = await bcryptjs.hash(password, 10);
+        const verificationToken = Math.floor(100000 + Math.random() * 900000).toString()
 
-		if (userAlreadyExists) {
-			return res.status(400).json({ success: false, message: "User already exists" });
-		}
+        const user = new User({
+            email,
+            password: hashedPassword,
+            name,
+            verificationToken,
+            verificationTokenExpiresAt:Date.now() + 24 * 60 * 60 * 1000 //24 hours
+        })
+        await user.save();
 
-		const hashedPassword = await bcryptjs.hash(password, 10);
-		const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+        // jwt
 
-		const user = new User({
-			email,
-			password: hashedPassword,
-			name,
-			verificationToken,
-			verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-		});
+        generateTokenAndSetCookie(res, user._id);
 
-		await user.save();
-
-		// jwt
-		generateTokenAndSetCookie(res, user._id);
-
-		await sendVerificationEmail(user.email, verificationToken);
-
-		res.status(201).json({
+        await sendVerificationEmail(user.email, verificationToken);
+        
+        res.status(201).json({
 			success: true,
 			message: "User created successfully",
 			user: {
@@ -51,10 +45,13 @@ export const signup = async (req, res) => {
 				password: undefined,
 			},
 		});
-	} catch (error) {
-		res.status(400).json({ success: false, message: error.message });
-	}
-};
+        
+    } catch (error) {
+        console.error(error.message); // Log the error for debugging
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+
+}
 
 export const verifyEmail = async (req, res) => {
 	const { code } = req.body;
@@ -89,6 +86,8 @@ export const verifyEmail = async (req, res) => {
 	}
 };
 
+
+
 export const login = async (req, res) => {
 	const { email, password } = req.body;
 	try {
@@ -120,10 +119,12 @@ export const login = async (req, res) => {
 	}
 };
 
+
 export const logout = async (req, res) => {
-	res.clearCookie("token");
+    res.clearCookie("token");
 	res.status(200).json({ success: true, message: "Logged out successfully" });
-};
+}
+
 
 export const forgotPassword = async (req, res) => {
 	const { email } = req.body;
@@ -152,6 +153,8 @@ export const forgotPassword = async (req, res) => {
 		res.status(400).json({ success: false, message: error.message });
 	}
 };
+
+
 
 export const resetPassword = async (req, res) => {
 	try {
@@ -183,6 +186,7 @@ export const resetPassword = async (req, res) => {
 		res.status(400).json({ success: false, message: error.message });
 	}
 };
+
 
 export const checkAuth = async (req, res) => {
 	try {
